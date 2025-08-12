@@ -1,6 +1,8 @@
 import express from 'express'
 import 'dotenv/config'
 import router from './routes/contact.route.js'
+import favoriteRouter from './routes/favorite.route.js'
+import userRouter from './routes/user.route.js'
 import connectToDB from './configs/db.js'
 import { specs, swaggerUi } from './configs/swagger.js'
 
@@ -17,6 +19,8 @@ const PORT = process.env.PORT || 4000
 
 
 app.use('/user', router)
+app.use('/user', favoriteRouter)
+app.use('/user', userRouter)
 
 
 // Add a welcome route
@@ -27,6 +31,6 @@ app.get('/', (req, res) => {
     })
 })
 
-app.listen(PORT, ()=> {
+app.listen(PORT, () => {
     console.log(`Server is running on PORT ${PORT}`)
 })
