@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-
+import Tags from './tag.model.js'
 const contactSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -16,7 +16,11 @@ const contactSchema = new mongoose.Schema({
     isFavorite: {
         type: Boolean,
         default: false
-    }
+    },
+    tags: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tags'
+    }],
 })
 
 const Contact = mongoose.model('Contact', contactSchema)
