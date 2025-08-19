@@ -1,7 +1,5 @@
 import express from 'express'
 import { loginUser, registerUser, logoutUser } from '../controllers/user.controller.js'
-import { validateLogin, validateRegister } from '../middlewares/authMiddleware.js'
-
 
 const userRouter = express.Router()
 
@@ -43,15 +41,15 @@ const userRouter = express.Router()
  *       500:
  *         description: Server error
  */
-userRouter.post('/register', validateRegister, registerUser)
-
+userRouter.post('/register', registerUser)
 
 /**
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Login user
+ *     summary: Login user and get JWT token with redirect URL
  *     tags: [Authentication]
+ *     description: Login to get JWT token and redirect URL. Copy the token from response and use it in 'Authorize' button above.
  *     requestBody:
  *       required: true
  *       content:
@@ -71,7 +69,11 @@ userRouter.post('/register', validateRegister, registerUser)
  *                 example: "password123"
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful - Copy the token from response data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
  *       400:
  *         description: Validation error or missing fields
  *       401:
@@ -79,9 +81,7 @@ userRouter.post('/register', validateRegister, registerUser)
  *       500:
  *         description: Server error
  */
-userRouter.post('/login', validateLogin, loginUser)
-
-
+userRouter.post('/login', loginUser)
 
 /**
  * @swagger
@@ -99,7 +99,7 @@ userRouter.post('/login', validateLogin, loginUser)
  *       500:
  *         description: Server error
  */
-userRouter.post('/logout', logoutUser) 
-
+userRouter.post('/logout', logoutUser)
 
 export default userRouter
+
