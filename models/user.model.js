@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
         required: [true, "Name is required"],
         trim: true,
         minlength: [2, "Name must be at least 2 characters long"],
-        maxlength: [50, "Name cannot exceed 50 characters"]
+        maxlength: [50, "Name cannot exceed 50 characters"],
+        match: [/^[a-zA-Z ]+$/, "Full name can only contain letters and spaces"]
     },
     email: {
         type: String,
@@ -20,7 +21,11 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, "Password is required"],
-        minlength: [6, "Password must be at least 6 characters long"]
+        minlength: [6, "Password must be at least 6 characters long"],maxlength: [64, "Password must be at most 64 characters"],
+        match: [
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+            "Password must include uppercase, lowercase, number, and special character"
+        ]
     }  
 })
 

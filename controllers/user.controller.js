@@ -100,10 +100,11 @@ export const loginUser = async (req, res) => {
         const userResponse = user.toObject();
         delete userResponse.password;
 
-        // 4️⃣ Send token to client
+        // Send successful response with redirect URL
         res.status(200).json({
             success: true,
             message: 'Login successful',
+            redirectTo: '/dashboard', // Add redirect URL
             data: {
                 user: userResponse,
                 token: token

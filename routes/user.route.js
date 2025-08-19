@@ -47,9 +47,9 @@ userRouter.post('/register', registerUser)
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Login user and get JWT token
+ *     summary: Login user and get JWT token with redirect URL
  *     tags: [Authentication]
- *     description: Login to get JWT token. Copy the token from response and use it in 'Authorize' button above.
+ *     description: Login to get JWT token and redirect URL. Copy the token from response and use it in 'Authorize' button above.
  *     requestBody:
  *       required: true
  *       content:
