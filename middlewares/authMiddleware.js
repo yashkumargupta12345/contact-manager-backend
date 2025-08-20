@@ -1,64 +1,81 @@
-export const validateRegister = async (req, res, next) => {
-    const { name, email, password } = req.body;
+import { body, validationResult } from 'express-validator';
+import { AppError } from '../utils/errorHandler.js';
+import { ERROR_MESSAGES } from '../constants/errors.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
 
-    // Input Validation
-    if (!name || !email || !password) {
-        return res.status(400).json({
-            success: false,
-            error: "All fields are required",
-            message: "Please provide name, email and password"
-        })
+export const validateRegister = [
+    body('name')
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Name must be between 2 and 50 characters')
+        .matches(/^[a-zA-Z ]+$/)
+        .withMessage('Name can only contain letters and spaces'),
+    
+    body('email')
+        .trim()
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email'),
+    
+    body('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters long'),
+    
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            const errorMessages = errors.array().map(error => error.msg);
+            throw new AppError(errorMessages.join(', '), 400, 'VALIDATION_ERROR');
+        }
+        next();
     }
+];
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({
-            success: false,
-            error: "Invalid email format",
-            message: "Please provide a valid email address"
-        });
+export const validateLogin = [
+    body('email')
+        .trim()
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email'),
+    
+    body('password')
+        .notEmpty()
+        .withMessage('Password is required'),
+    
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            const errorMessages = errors.array().map(error => error.msg);
+            throw new AppError(errorMessages.join(', '), 400, 'VALIDATION_ERROR');
+        }
+        next();
     }
+];
 
-    // Password length validation
-    if (password.length < 6) {
-        return res.status(400).json({
-            success: false,
-            error: "Password too short",
-            message: "Password must be at least 6 characters long"
-        });
+export const validateUpdatePassword = [
+    body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+    
+    body('newPassword')
+        .isLength({ min: 6 })
+        .withMessage('New password must be at least 6 characters long'),
+    
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            const errorMessages = errors.array().map(error => error.msg);
+            throw new AppError(errorMessages.join(', '), 400, 'VALIDATION_ERROR');
+        }
+        
+        const { currentPassword, newPassword } = req.body;
+        if (currentPassword.trim() === newPassword.trim()) {
+            throw new AppError(ERROR_MESSAGES.SAME_PASSWORD, 400, 'SAME_PASSWORD');
+        }
+        next();
     }
-
-    next();
-}
-
-
-export const validateLogin = async (req, res, next) => {
-    const { email, password } = req.body;
-
-    // Input Validation
-    if (!email || !password) {
-        return res.status(400).json({
-            success: false,
-            error: "All fields are required",
-            message: "Please provide email and password"
-        })
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({
-            success: false,
-            error: "Invalid email format",
-            message: "Please provide a valid email address"
-        });
-    }
-
-    next()
-}
-
-
+];
 
 // Authentication middleware
 export const authenticateToken = async (req, res, next) => {
@@ -74,10 +91,7 @@ export const authenticateToken = async (req, res, next) => {
             });
         }
 
-        const jwt = await import('jsonwebtoken');
-        const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
-        
-        const { default: User } = await import('./models/user.model.js');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select('-password');
 
         if (!user) {

@@ -1,130 +1,72 @@
-import User from "../models/user.model.js";
-import jwt from 'jsonwebtoken';
+import UserService from '../services/user.service.js';
+import { handleServiceError } from '../utils/errorHandler.js';
 
-export const registerUser = async (req, res) => {
+export const registerUser = async (req, res, next) => {
     try {
-        const { name, email, password } = req.body;
-
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                error: "User already exists",
-                message: "A user with this email already exists"
-            });
-        }
-
-        const user = new User({
-            name,
-            email,
-            password
-        })
-
-        const savedUser = await user.save()
-
-        // Remove password from response
-        const userResponse = savedUser.toObject();
-        delete userResponse.password;
-
+        const userData = req.body;
+        const user = await UserService.createUser(userData);
+        
         res.status(201).json({
             success: true,
             message: "User registered successfully",
-            data: userResponse
+            data: user
         });
-
     } catch (error) {
-        console.error("Error registering user:", error);
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                error: "Validation failed",
-                message: error.message
-            });
-        }
-
-        // Handle duplicate key error (if email has unique constraint)
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                error: "User already exists",
-                message: "A user with this email already exists"
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            error: "Failed to register user",
-            message: "Internal server error"
-        });
+        next(handleServiceError(error));
     }
-}
+};
 
-
-
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res, next) => {
     try {
-        const { email, password } = req.body
-
-        // Check if user exists
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                error: "Invalid credentials",
-                message: "Invalid email or password"
-            });
-        }
-
-        const isMatch = await user.comparePassword(password);
-
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                error: "Invalid credentials",
-                message: "Invalid email or password"
-            });
-        }
-
-        const payload = { id: user._id, email: user.email, name: user.name }
-
-        // Generate JWT token
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' })
-
-        // Remove password from user object
+        const { email, password } = req.body;
+        
+        const user = await UserService.authenticateUser(email, password);
+        const token = await UserService.generateToken(user);
+        
+        // Remove password from response
         const userResponse = user.toObject();
         delete userResponse.password;
 
-        // Send successful response with redirect URL
         res.status(200).json({
             success: true,
             message: 'Login successful',
-            redirectTo: '/dashboard', // Add redirect URL
+            redirectTo: '/dashboard',
             data: {
                 user: userResponse,
                 token: token
             }
         });
-
     } catch (error) {
-        console.error("Error logging in user:", error); // Fix: use 'error' instead of 'err'
-
-        res.status(500).json({
-            success: false,
-            error: "Failed to login",
-            message: "Internal server error"
-        });
+        next(handleServiceError(error));
     }
-}
+};
 
+export const updatePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user?.id;
 
+        if (!userId) {
+            throw new Error('AUTHENTICATION_REQUIRED');
+        }
 
-export const logoutUser = async(req, res) => {
+        await UserService.updateUserPassword(
+            userId, 
+            currentPassword.trim(), 
+            newPassword.trim()
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Password updated successfully. Please login again with your new password.',
+            redirectTo: "/login"
+        });
+    } catch (error) {
+        next(handleServiceError(error));
+    }
+};
+
+export const logoutUser = async (req, res, next) => {
     try {
         res.status(200).json({
             success: true,
@@ -134,13 +76,7 @@ export const logoutUser = async(req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error logging out user:", error);
-        
-        res.status(500).json({
-            success: false,
-            error: "Failed to logout",
-            message: "Internal server error"
-        });
+        next(error);
     }
-}
+};
 
