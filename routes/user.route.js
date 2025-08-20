@@ -1,5 +1,6 @@
 import express from 'express'
-import { loginUser, registerUser, logoutUser } from '../controllers/user.controller.js'
+import { loginUser, registerUser, logoutUser, updatePassword } from '../controllers/user.controller.js'
+import { validateRegister, validateLogin, validateUpdatePassword } from '../middlewares/authMiddleware.js'
 
 const userRouter = express.Router()
 
@@ -41,7 +42,7 @@ const userRouter = express.Router()
  *       500:
  *         description: Server error
  */
-userRouter.post('/register', registerUser)
+userRouter.post('/register', validateRegister, registerUser) // Add validation
 
 /**
  * @swagger
@@ -81,7 +82,7 @@ userRouter.post('/register', registerUser)
  *       500:
  *         description: Server error
  */
-userRouter.post('/login', loginUser)
+userRouter.post('/login', validateLogin, loginUser) // Add validation
 
 /**
  * @swagger
@@ -89,17 +90,52 @@ userRouter.post('/login', loginUser)
  *   post:
  *     summary: Logout user
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successful
- *       401:
- *         description: No token provided or invalid token
  *       500:
  *         description: Server error
  */
-userRouter.post('/logout', logoutUser)
+userRouter.post('/logout', logoutUser) // Remove security requirement
+
+/**
+ * @swagger
+ * /auth/update-password:
+ *   put:
+ *     summary: Update user password
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Update the password for the authenticated user. Requires current password verification.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: "password123"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: "newpassword123"
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Validation error or same password
+ *       401:
+ *         description: Wrong current password or unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+userRouter.put('/update-password', validateUpdatePassword, updatePassword) // Add validation
 
 export default userRouter
-
