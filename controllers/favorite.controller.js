@@ -4,7 +4,14 @@ import Contact from "../models/contact.model.js";
 
 export const getFavorites = async(req, res) => {
     try {
-        const favoriteContacts = await Contact.find({ isFavorite: true })
+        const userId = req.user.id;
+
+            const favoriteContacts = await Contact.find(
+                { 
+                    isFavorite: true,
+                    createdBy: userId
+                }
+            ).populate('tags', 'name color')
 
         if (!favoriteContacts || favoriteContacts.length === 0) {
             return res.status(404).json({
@@ -33,8 +40,10 @@ export const getFavorites = async(req, res) => {
 export const addFavorite = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
 
-        const favoriteContact = await Contact.findByIdAndUpdate(id, { isFavorite: true }, { new: true, runValidators: true })
+        const favoriteContact = await Contact.findByIdAndUpdate(
+            {_id: id, createdBy: userId}, { isFavorite: true }, { new: true, runValidators: true }).populate('tags', 'name color');
 
         // Check if contact exists
         if (!favoriteContact) {
@@ -78,8 +87,9 @@ export const addFavorite = async (req, res) => {
 export const removeFavorite = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
 
-        const contact = await Contact.findByIdAndUpdate(id, { isFavorite: false }, { new: true, runValidators: true })
+        const contact = await Contact.findOneAndUpdate({ _id: id, createdBy: userId }, { isFavorite: false }, { new: true, runValidators: true }).populate('tags', 'name color');
 
         // Check if contact exists
         if (!contact) {
