@@ -183,6 +183,7 @@ export const getContactsByTag = async (req, res) => {
         // Find all contacts that have this tag
         const contacts = await Contact.find({
             tags: id,
+            createdBy: userId
         }).populate('tags', 'name color');
 
         if (!contacts || contacts.length === 0) {
@@ -276,7 +277,9 @@ export const addContactToTag = async (req, res) => {
         }
 
         // Verify contact exists
-        const contact = await Contact.findById(contactId);
+        const contact = await Contact.findOne({_id: contactId,
+            createdBy: userId
+        });
         if (!contact) {
             return res.status(404).json({
                 success: false,
@@ -351,7 +354,9 @@ export const removeContactFromTag = async (req, res) => {
         }
 
         // Verify contact exists and has this tag
-        const contact = await Contact.findById(contactId);
+        const contact = await Contact.findOne({_id: contactId,
+            createdBy: userId
+        });
         if (!contact) {
             return res.status(404).json({
                 success: false,
@@ -433,7 +438,8 @@ export const addMultipleContactsToTag = async (req, res) => {
             });
         }
         // Get all contacts that exist
-        const contacts = await Contact.find({ _id: { $in: contactIds } });
+        const contacts = await Contact.find({ _id: { $in: contactIds },
+        createdBy: userId });
 
         if (contacts.length === 0) {
             return res.status(404).json({

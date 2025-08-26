@@ -3,10 +3,16 @@ import Contact from "../models/contact.model.js";
 
 export const getContact = async (req, res) => {
     try {
-        const contacts = await Contact.find({})
+
+        const userId = req.user.id;
+
+        const contacts = await Contact.find({createdBy: userId}).populate('tags', 'name color')
 
         if (!contacts || contacts.length === 0) {
-            return res.status(404).json({ message: "No contacts found" })
+            return res.status(404).json({ 
+                success: false,
+                message: "No contacts found" 
+            })
         }
 
         res.status(200).json({
@@ -29,14 +35,25 @@ export const getContact = async (req, res) => {
 export const createContact = async (req, res) => {
     try {
         const newContact = req.body;
+        const userId = req.user.id;
+
         if (!newContact || Object.keys(newContact).length === 0) {
             return res.status(400).json({
                 success: false,
                 error: "Request body is required"
             })
         }
-        const contact = new Contact(newContact)
+
+        // Add userId to contact Data
+        const contactData = {
+            ...newContact,
+            createdBy: userId
+        }
+
+        const contact = new Contact(contactData)
         const savedContact = await contact.save()
+
+        await savedContact.populate('tags', 'name color');
 
         res.status(201).json({
             success: true,
@@ -68,6 +85,7 @@ export const updateContact = async (req, res) => {
     try {
         const id = req.params.id
         const updateData = req.body;
+        const userId = req.user.id;
 
         // Validate request body
         if (!updateData || Object.keys(updateData).length === 0) {
@@ -77,11 +95,23 @@ export const updateContact = async (req, res) => {
             })
         }
 
+        // Removed createdBy from updateData to prevent modification
+        delete updateData.createdBy;
+
 
         // Fix: Correct syntax for findByIdAndUpdate
-        const updatedContact = await Contact.findByIdAndUpdate(id,
+        const updatedContact = await Contact.findOneAndUpdate({ _id: id, createdBy: userId },
             updateData,
-            { new: true, runValidators: true })
+            { new: true, runValidators: true }).populate('tags', 'name color');
+        
+        if (!updatedContact) {
+            return res.status(404).json({
+                success: false,
+                error: "Contact not found",
+                message: "Contact not found or you don't have permission to update it"
+            })
+        }
+
 
         res.status(200).json({
             success: true,
@@ -120,10 +150,11 @@ export const updateContact = async (req, res) => {
 
 export const deleteContact = async (req, res) => {
     try {
-        const id = req.params.id
+        const id = req.params.id;
+        const userId = req.user.id;
 
         // Check if contact exists before deleting
-        const deletedContact = await Contact.findByIdAndDelete(id)
+        const deletedContact = await Contact.findOneAndDelete({ _id: id, createdBy: userId });
 
         if (!deletedContact) {
             return res.status(404).json({
